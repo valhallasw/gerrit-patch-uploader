@@ -1,0 +1,14 @@
+<!doctype html>
+<title>Upload a patch to Gerrit</title>
+<form action="submit" method="post">
+        <label for="project">Project: </label><br><select name="project">
+  {% for project in projects %}
+  <option>{{project}}</option>
+  {% endfor %}
+  </select><br>
+  <label for="committer">Committer: (user &lt;email&gt;)</label><br> <input type="text" name="committer"><br>
+  <label for="message">Commit message:</label><br><textarea cols="75" rows="10" name="message"></textarea><br>
+  <label for="patch">Patch:</label><br><textarea cols="75" rows="10" name="patch"></textarea><br>
+          <input type="submit">
+         </form>
+

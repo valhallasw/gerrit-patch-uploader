@@ -1,0 +1,7 @@
+Host gerrit
+Hostname gerrit.wikimedia.org
+Port 29418
+User reviewer-bot
+Batchmode yes
+ConnectTimeout 10
+IdentityFile <path-to-id_rsa>
