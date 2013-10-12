@@ -1,0 +1,4 @@
+app_secret_key = ''
+oauth_key = ''
+oauth_secret = ''
+committer_email = 'gerritpatchuploader@gmail.com'
