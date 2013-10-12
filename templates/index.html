@@ -53,12 +53,9 @@ using git, git-review, or even creating a Gerrit account.
   <option>{{project}}</option>
   {% endfor %}
   </select><br><br>
-  <label for="committer">Author: (user &lt;email&gt;)</label><br> <input type="text" name="committer" {{disabled}} value="{{username}} &lt;{{username}}@...&gt;" size=50><br><br>
+  <label for="committer">Author: (user &lt;email&gt;)</label><br> <input type="text" name="committer" {{disabled}} placeholder="Your name &lt;your e-mail address&gt;" size=50><br><br>
   Committer: <br><tt>[[mw:User:{{username}}]] ({{committer_email}})</tt><br/><br>
-  <label for="message">Commit message:</label><br><textarea cols="75" rows="10" name="message" {{disabled}}>
-One line to summarize your patch
-Then multiple lines
-of extended description.</textarea><br><br>
+  <label for="message">Commit message:</label><br><textarea cols="75" rows="10" name="message" {{disabled}} placeholder="One line to summarize your patch, then multiple lines of extended description."></textarea><br><br>
   <label for="patch">Patch:</label><br><textarea cols="75" rows="10" name="patch" {{disabled}}></textarea><br><br>
           <input type="submit" {{disabled}}>
          </form>

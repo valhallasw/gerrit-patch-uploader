@@ -27,7 +27,7 @@ cache = FileSystemCache('cache')
 def get_projects():
     projects = cache.get('projects')
     if projects is None:
-        p = subprocess.Popen(['ssh', 'gerrit.wikimedia.org', '-p', '29418', 'gerrit ls-projects'], stdout=subprocess.PIPE)
+        p = subprocess.Popen(['ssh', 'gerrit', 'gerrit ls-projects'], stdout=subprocess.PIPE)
         stdout, stderr = p.communicate()
         projects = stdout.split("\n")
         cache.set('projects', projects)
@@ -76,41 +76,41 @@ def apply_and_upload(user, project, committer, message, patch):
         p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=tempd)
         yield p.communicate()[0]
         if p.returncode != 0:
-            return
+            raise Exception("Clone failed")
 
         cmd = ['git', 'config', 'user.name', '[[mw:User:%s]]' % user]
         yield " ".join(cmd) + "\n"
         p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=tempd)
         yield p.communicate()[0]
         if p.returncode != 0:
-            return
+            raise Exception("Git Config failed (should never happen)!")
 
         cmd = ['git', 'config', 'user.email', config.committer_email]
         yield " ".join(cmd) + "\n"
         p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=tempd)
         yield p.communicate()[0]
         if p.returncode != 0:
-            return
+            raise Exception("Git Config failed (should never happen)!")
 
         yield "\nscp -p gerrit:hooks/commit-msg .git/hooks/"
         p = subprocess.Popen(["scp", "-p", "gerrit:hooks/commit-msg", ".git/hooks"],
                              stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=tempd)
         yield p.communicate()[0]
         if p.returncode != 0:
-            return
+            raise Exception("Installing commit message hook failed")
 
         yield "\npatch -p0 < patch\n"
         p = subprocess.Popen(["patch", "-p0"], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=tempd)
         yield p.communicate(patch)[0]
         if p.returncode != 0:
-            return
+            raise Exception("Patch failed (is your patch in unified diff format, and does it patch apply cleanly to master?)")
 
         yield "\ngit commit -a --committer=\"" + committer + "\" -F - < message\n"
         p = subprocess.Popen(["git", "commit", "-a", "--author=" + committer, "-F", "-"],
                              stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=tempd)
         yield p.communicate(message)[0]
         if p.returncode != 0:
-            return
+            raise Exception("Commit failed (incorrect format used for author?)")
 
         yield "\ngit push origin HEAD:refs/for/master\n"
         p = subprocess.Popen(["git", "push", "origin", "HEAD:refs/for/master"],
@@ -118,7 +118,7 @@ def apply_and_upload(user, project, committer, message, patch):
         pushresult = p.communicate(message)[0].replace("[K", "")
         yield pushresult
         if p.returncode != 0:
-            return
+            raise Exception("Push failed")
 
         yield "</pre><br>"
 
@@ -130,9 +130,12 @@ def apply_and_upload(user, project, committer, message, patch):
         yield "</ul>"
 
         if len(patches) == 1:
-            yield "<br><br>Automatically redirecting in 5 seconds..."
+            yield "Automatically redirecting in 5 seconds..."
             yield '<meta http-equiv="refresh" content="5; url=' + patch + '">'
-
+    except Exception, e:
+        yield "</pre>"
+        yield "<b>Upload failed</b><br>"
+        yield "Reason: <i>" + str(e) + "</i> (check log above for details)"
     finally:
         shutil.rmtree(tempd)
 
