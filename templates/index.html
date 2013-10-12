@@ -1,14 +1,69 @@
-<!doctype html>
-<title>Upload a patch to Gerrit</title>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<HTML>
+  <HEAD>
+    <TITLE>Tool Labs</TITLE>
+    <LINK rel="StyleSheet" href="//tools.wmflabs.org/style.css" type="text/css" media=screen>
+    <META charset="utf-8">
+ </HEAD>
+  <BODY>
+    <TABLE border="0" cellpadding="1em"><TR>
+    <TD valign="top" width="130">
+      <A HREF="/">
+<center>
+        <IMG SRC="//upload.wikimedia.org/wikipedia/commons/4/4d/Gerrit_icon.svg" ALT="Gerrit logo" width="100">
+</center>
+      </A>
+      <DIV CLASS="sidebar">
+        <HR>
+        {% if username %}
+        You are logged in as <b>{{username}}</b>.
+        <HR>
+        <A href="logout">log out</A>
+        {% else %}
+        You are <b>not logged in</b>.
+        <HR>
+        <A href="login">log in</A> using your <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/3/3d/Mediawiki-logo.png/32px-Mediawiki-logo.png"> mediawiki.org account.
+        {% endif %}
+        <HR>
+     </DIV>
+    </TD><TD class="content">
+
+{% with messages = get_flashed_messages() %}
+  {% if messages %}
+    {% for message in messages %}
+      <h2>{{ message }}</h2>
+    {% endfor %}
+  {% endif %}
+{% endwith %}
+
+<H1 style="margin-top:1em;">Gerrit Patch Uploader</H1>
+This tool allows you to upload a patchset to Wikimedia's Gerrit without
+using git, git-review, or even creating a Gerrit account. 
+
+{% if not username %}
+    {% set disabled = 'disabled' %}
+{% else %}
+    {% set disabled = '' %}
+{% endif %}
+
+<h2 style="margin-top:3em;">Upload an patch</h2>
 <form action="submit" method="post">
-        <label for="project">Project: </label><br><select name="project">
+        <label for="project">Project: </label><br><select name="project" {{disabled}}>
   {% for project in projects %}
   <option>{{project}}</option>
   {% endfor %}
-  </select><br>
-  <label for="committer">Committer: (user &lt;email&gt;)</label><br> <input type="text" name="committer"><br>
-  <label for="message">Commit message:</label><br><textarea cols="75" rows="10" name="message"></textarea><br>
-  <label for="patch">Patch:</label><br><textarea cols="75" rows="10" name="patch"></textarea><br>
-          <input type="submit">
+  </select><br><br>
+  <label for="committer">Author: (user &lt;email&gt;)</label><br> <input type="text" name="committer" {{disabled}} value="{{username}} &lt;{{username}}@...&gt;" size=50><br><br>
+  Committer: <br><tt>[[mw:User:{{username}}]] ({{committer_email}})</tt><br/><br>
+  <label for="message">Commit message:</label><br><textarea cols="75" rows="10" name="message" {{disabled}}>
+One line to summarize your patch
+Then multiple lines
+of extended description.</textarea><br><br>
+  <label for="patch">Patch:</label><br><textarea cols="75" rows="10" name="patch" {{disabled}}></textarea><br><br>
+          <input type="submit" {{disabled}}>
          </form>
+</TD>
+    </TABLE>
+  </BODY>
+</HTML>
 
