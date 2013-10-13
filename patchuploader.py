@@ -115,7 +115,7 @@ def apply_and_upload(user, project, committer, message, patch):
         yield "\ngit push origin HEAD:refs/for/master\n"
         p = subprocess.Popen(["git", "push", "origin", "HEAD:refs/for/master"],
                              stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=tempd)
-        pushresult = p.communicate(message)[0].replace("[K", "")
+        pushresult = p.communicate(message)[0].replace("\x1b[K", "")
         yield pushresult
         if p.returncode != 0:
             raise Exception("Push failed")
