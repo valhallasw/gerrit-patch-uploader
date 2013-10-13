@@ -55,7 +55,11 @@ def submit():
     message = request.form['message']
     if not message:
         return 'message not set'
-    patch = request.form['patch']
+    fpatch = request.files['fpatch']
+    if fpatch:
+        patch = fpatch.stream.read()
+    else:
+        patch = request.form['patch']
     if not patch:
         return 'patch not set'
 
