@@ -99,16 +99,16 @@ def apply_and_upload(user, project, committer, message, patch):
         if p.returncode != 0:
             raise Exception("Installing commit message hook failed")
 
-        yield "\npatch -p0 < patch\n"
+        yield "\ngit apply < patch\n"
         p = subprocess.Popen(["git", "apply"], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=tempd)
-        yield p.communicate(patch)[0]
+        yield p.communicate(patch.replace('\r\n', '\n').encode('utf-8'))[0]
         if p.returncode != 0:
             raise Exception("Patch failed (is your patch in unified diff format, and does it patch apply cleanly to master?)")
 
         yield "\ngit commit -a --committer=\"" + committer + "\" -F - < message\n"
         p = subprocess.Popen(["git", "commit", "-a", "--author=" + committer.encode('utf-8'), "-F", "-"],
                              stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=tempd)
-        yield p.communicate(message)[0]
+        yield p.communicate(message.replace('\r\n', '\n').encode('utf-8'))[0]
         if p.returncode != 0:
             raise Exception("Commit failed (incorrect format used for author?)")
 
