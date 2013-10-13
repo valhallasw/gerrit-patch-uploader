@@ -78,7 +78,7 @@ def apply_and_upload(user, project, committer, message, patch):
         if p.returncode != 0:
             raise Exception("Clone failed")
 
-        cmd = ['git', 'config', 'user.name', '[[mw:User:%s]]' % user]
+        cmd = ['git', 'config', 'user.name', '[[mw:User:%s]]' % user.encode('utf-8')]
         yield " ".join(cmd) + "\n"
         p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=tempd)
         yield p.communicate()[0]
