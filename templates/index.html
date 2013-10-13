@@ -50,12 +50,12 @@ using git, git-review, or even creating a Gerrit account.
 <br><br>
 
 Allowed patch formats: <ul style="font-family: monospace">
-	<li>git format-patch -1 --stdout HEAD --no-prefix</li>
+	<li>git format-patch -1 --stdout HEAD</li>
 	<li>diff -u file1 file2</li>
-	<li>(something with git diff)</li>
-	<li>(something with svn diff)</li>
+	<li>git diff</li>
+	<li>svn diff</li>
 </ul>
-<h2 style="margin-top:3em;">Upload an patch</h2>
+<h2 style="margin-top:3em;">Upload a patch</h2>
 <form action="submit" method="post">
         <label for="project">Project: </label><br><select name="project" {{disabled}}>
   {% for project in projects %}
