@@ -57,7 +57,7 @@ Allowed patch formats: <ul style="font-family: monospace">
 	<li>svn diff</li>
 </ul>
 <h2 style="margin-top:3em;">Upload a patch</h2>
-<form action="submit" method="post">
+<form action="submit" method="post" enctype="multipart/form-data">
         <label for="project">Project: </label><br><select name="project" {{disabled}}>
   {% for project in projects %}
   <option>{{project}}</option>
@@ -66,7 +66,7 @@ Allowed patch formats: <ul style="font-family: monospace">
   <label for="committer">Author: (user &lt;email&gt;)</label><br> <input type="text" name="committer" {{disabled}} placeholder="Your name &lt;your e-mail address&gt;" size=50><br><br>
   Committer: <br><tt>[[mw:User:{{username}}]] ({{committer_email}})</tt><br/><br>
   <label for="message">Commit message:</label><br><textarea cols="75" rows="10" name="message" {{disabled}} placeholder="One line to summarize your patch, then multiple lines of extended description."></textarea><br><br>
-  <label for="patch">Patch:</label><br><textarea cols="75" rows="10" name="patch" {{disabled}}></textarea><br><br>
+  <label for="fpatch">Patch:</label><input type="file" name="fpatch" id="fpatch"> (or paste below)<br><textarea cols="75" rows="10" name="patch" {{disabled}}></textarea><br><br>
           <input type="submit" {{disabled}}>
          </form>
 </TD>
