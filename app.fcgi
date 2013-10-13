@@ -2,6 +2,8 @@
 from flup.server.fcgi import WSGIServer
 from patchuploader import app
 
+from flask import request
+
 import time
 import logging
 from logging import FileHandler
