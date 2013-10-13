@@ -9,6 +9,7 @@ os.environ['PATH'] = os.environ['PATH'] + ":/usr/local/sbin:/usr/local/bin:/usr/
 os.environ['LANG'] = 'en_US.UTF-8'
 os.chdir(os.path.normpath(os.path.split(__file__)[0]))
 
+import jinja2
 from flask import Flask, render_template, request, Response
 from werkzeug.contrib.cache import FileSystemCache
 from flask_mwoauth import MWOAuth
@@ -58,7 +59,7 @@ def submit():
     if not patch:
         return 'patch not set'
 
-    return Response(apply_and_upload(user, project, committer, message, patch))
+    return Response(jinja2.escape(e) for e in apply_and_upload(user, project, committer, message, patch))
 
 def run_command(cmd):
     yield " ".join(cmd) + "\n"
@@ -68,7 +69,7 @@ def run_command(cmd):
     yield lines
 
 def apply_and_upload(user, project, committer, message, patch):
-    yield "Result from uploading patch: <br><pre>"
+    yield jinja2.Markup("Result from uploading patch: <br><div style='font-family: monospace;white-space: pre;'>")
     tempd = tempfile.mkdtemp()
     try:
         cmd = ['git', 'clone', '--depth=1', 'ssh://gerrit/' + project, tempd]
@@ -120,22 +121,22 @@ def apply_and_upload(user, project, committer, message, patch):
         if p.returncode != 0:
             raise Exception("Push failed")
 
-        yield "</pre><br>"
+        yield jinja2.Markup("</div><br>")
 
         yield "Uploaded patches:"
-        yield "<ul>"
+        yield jinja2.Markup("<ul>")
         patches = re.findall('https://gerrit.wikimedia.org/.*', pushresult)
         for patch in patches:
-            yield '<li><a href="' + patch + '">' + patch + "</a></li>"
-        yield "</ul>"
+            yield jinja2.Markup('<li><a href="%s">%s</a>') % (patch, patch)
+        yield jinja2.Markup("</ul>")
 
         if len(patches) == 1:
             yield "Automatically redirecting in 5 seconds..."
-            yield '<meta http-equiv="refresh" content="5; url=' + patch + '">'
+            yield jinja2.Markup('<meta http-equiv="refresh" content="5; url="%s">') % (patch,)
     except Exception, e:
-        yield "</pre>"
-        yield "<b>Upload failed</b><br>"
-        yield "Reason: <i>" + str(e) + "</i> (check log above for details)"
+        yield jinja2.Markup("</div>")
+        yield jinja2.Markup("<b>Upload failed</b><br>")
+        yield jinja2.Markup("Reason: <i>%s</i> (check log above for details)") % e
     finally:
         shutil.rmtree(tempd)
 
