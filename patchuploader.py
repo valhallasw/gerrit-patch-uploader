@@ -100,7 +100,7 @@ def apply_and_upload(user, project, committer, message, patch):
             raise Exception("Installing commit message hook failed")
 
         yield "\npatch -p0 < patch\n"
-        p = subprocess.Popen(["patch", "-p0"], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=tempd)
+        p = subprocess.Popen(["git", "apply"], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=tempd)
         yield p.communicate(patch)[0]
         if p.returncode != 0:
             raise Exception("Patch failed (is your patch in unified diff format, and does it patch apply cleanly to master?)")
