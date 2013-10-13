@@ -142,7 +142,7 @@ def apply_and_upload(user, project, committer, message, patch):
 
         if len(patches) == 1:
             yield "Automatically redirecting in 5 seconds..."
-            yield jinja2.Markup('<meta http-equiv="refresh" content="5; url="%s">') % (patch,)
+            yield jinja2.Markup('<meta http-equiv="refresh" content="5; url=%s">') % (patch,)
     except Exception, e:
         yield jinja2.Markup("</div>")
         yield jinja2.Markup("<b>Upload failed</b><br>")
