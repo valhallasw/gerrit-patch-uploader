@@ -4,6 +4,7 @@ import tempfile
 import shutil
 import os
 import re
+import xmlrpclib
 
 os.environ['PATH'] = os.environ['PATH'] + ":/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/usr/games"
 os.environ['LANG'] = 'en_US.UTF-8'
@@ -37,6 +38,26 @@ def get_projects():
 @app.route("/")
 def index():
    return render_template('index.html', projects=get_projects(), username=mwoauth.get_current_user(), committer_email=config.committer_email)
+
+@app.route("/bugzilla/<int:patchid>")
+def upload_bugzilla_patch(patchid):
+    patchid = int(patchid)
+    sp = xmlrpclib.ServerProxy('https://bugzilla.wikimedia.org/xmlrpc.cgi')
+
+    att = sp.Bug.attachments({'attachment_ids': patchid})['attachments'].values()[0]
+    user = sp.User.get({'names': att['creator']})['users'][0]
+
+    author = user['real_name'] + " <" + user['name'] + "> "
+    commitmessage = att['summary'] + "\n\nBug: " + str(att['bug_id'])
+
+    patch = att['data'].data
+    try:
+        patch = patch.decode('utf-8')
+    except UnicodeDecodeException:
+        patch = patch.decode('latin-1')
+
+    return render_template('index.html', projects=get_projects(), username=mwoauth.get_current_user(), committer_email=config.committer_email,
+                           author=author, commitmessage=commitmessage, patch=patch)
 
 @app.route("/submit", methods=["POST"])
 def submit():

@@ -65,10 +65,10 @@ Allowed patch formats: <ul style="font-family: monospace">
   <option>{{project}}</option>
   {% endfor %}
   </select><br><br>
-  <label for="committer">Author: (user &lt;email&gt;)</label><br> <input type="text" name="committer" {{disabled}} placeholder="Your name &lt;your e-mail address&gt;" size=50><br><br>
+  <label for="committer">Author: (user &lt;email&gt;)</label><br> <input type="text" name="committer" {{disabled}} placeholder="Your name &lt;your e-mail address&gt;" size=50 value="{{author}}"><br><br>
   Committer: <br><tt>[[mw:User:{{username}}]] ({{committer_email}})</tt><br/><br>
-  <label for="message">Commit message:</label><br><textarea cols="75" rows="10" name="message" {{disabled}} placeholder="One line to summarize your patch, then multiple lines of extended description."></textarea><br><br>
-  <label for="fpatch">Patch:</label><input type="file" name="fpatch" id="fpatch"> (or paste below)<br><textarea cols="75" rows="10" name="patch" {{disabled}}></textarea><br><br>
+  <label for="message">Commit message:</label><br><textarea cols="75" rows="10" name="message" {{disabled}} placeholder="One line to summarize your patch, then multiple lines of extended description.">{{commitmessage}}</textarea><br><br>
+  <label for="fpatch">Patch:</label><input type="file" name="fpatch" id="fpatch"> (or paste below)<br><textarea cols="75" rows="10" name="patch" {{disabled}}>{{patch}}</textarea><br><br>
           <input type="submit" {{disabled}}>
          </form>
 </TD>
