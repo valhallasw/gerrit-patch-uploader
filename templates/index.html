@@ -19,11 +19,11 @@
         {% if username %}
         You are logged in as <b>{{username}}</b>.
         <HR>
-        <A href="logout">log out</A>
+	<A href="{{url_for('mwoauth.logout')}}">log out</A>
         {% else %}
         You are <b>not logged in</b>.
         <HR>
-        <A href="login">log in</A> using your <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/3/3d/Mediawiki-logo.png/32px-Mediawiki-logo.png"> mediawiki.org account.
+	<A href="{{url_for('mwoauth.login')}}">log in</A> using your <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/3/3d/Mediawiki-logo.png/32px-Mediawiki-logo.png"> mediawiki.org account.
         {% endif %}
 	<HR>
 	<A href="https://gerrit.wikimedia.org/r/#/q/owner:%22gerrit+patch+uploader%22+status:open,n,z">gerrit</A>

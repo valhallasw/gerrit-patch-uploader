@@ -1,2 +1,2 @@
 flask
-flask-mwoauth
+flask-mwoauth>=0.1.2
