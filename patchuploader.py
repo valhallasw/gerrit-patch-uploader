@@ -45,6 +45,8 @@ def upload_bugzilla_patch(patchid):
     sp = xmlrpclib.ServerProxy('https://bugzilla.wikimedia.org/xmlrpc.cgi')
 
     att = sp.Bug.attachments({'attachment_ids': patchid})['attachments'].values()[0]
+    if att['content_type'] != 'text/plain':
+        return jinja2.Markup("Content-type not text/plain; got %s instead") % att['content_type']
     user = sp.User.get({'names': att['creator']})['users'][0]
 
     author = user['real_name'] + " <" + user['name'] + "> "
