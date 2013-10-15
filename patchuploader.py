@@ -11,7 +11,7 @@ os.environ['LANG'] = 'en_US.UTF-8'
 os.chdir(os.path.normpath(os.path.split(__file__)[0]))
 
 import jinja2
-from flask import Flask, render_template, request, Response
+from flask import Flask, render_template, request, Response, redirect, url_for, flash
 from werkzeug.contrib.cache import FileSystemCache
 from flask_mwoauth import MWOAuth
 
@@ -24,6 +24,8 @@ mwoauth = MWOAuth(consumer_key=config.oauth_key, consumer_secret=config.oauth_se
 app.register_blueprint(mwoauth.bp)
 
 cache = FileSystemCache('cache')
+
+bzsp = xmlrpclib.ServerProxy('https://bugzilla.wikimedia.org/xmlrpc.cgi')
 
 
 def get_projects():
@@ -39,15 +41,54 @@ def get_projects():
 def index():
    return render_template('index.html', projects=get_projects(), username=mwoauth.get_current_user(), committer_email=config.committer_email)
 
-@app.route("/bugzilla/<int:patchid>")
-def upload_bugzilla_patch(patchid):
-    patchid = int(patchid)
-    sp = xmlrpclib.ServerProxy('https://bugzilla.wikimedia.org/xmlrpc.cgi')
+@app.route("/bugzilla/fromurl", methods=["GET"])
+def bz_fromurl(oldurl=''):
+    return render_template('bzfromurl_welcome.html', oldurl=oldurl)
 
-    att = sp.Bug.attachments({'attachment_ids': patchid})['attachments'].values()[0]
-    if att['content_type'] != 'text/plain':
-        return jinja2.Markup("Content-type not text/plain; got %s instead") % att['content_type']
-    user = sp.User.get({'names': att['creator']})['users'][0]
+patch_content_types = ['text/plain']
+
+@app.route("/bugzilla/fromurl", methods=["POST"])
+def bz_fromurl_post():
+    url = request.form.get('url')
+    if not isinstance(url, basestring):
+        return bz_fromurl()
+
+    if not u'attachment.cgi' in url and not u'bug.cgi' in url:
+        flash('Error: URL not recognised. Does it contain attachment.cgi/bug.cgi?')
+        return bz_fromurl(url)
+
+    try:
+        id = int(re.search(r'id=([0-9]+)', url).groups()[0])
+    except AttributeError:
+        flash('Error: could not parse ID in string. Does it contain an id=... parameter?')
+        return bz_fromurl(url)
+
+    if u'attachment.cgi' in url:
+        return redirect(url_for('upload_bugzilla_patch', patchid=id))
+
+    satts = bzsp.Bug.attachments({'ids': id})['bugs'].values()[0]
+    atts = [att for att in satts if att['content_type'] in patch_content_types]
+    if len(atts) == 0:
+        flash('Error: no viable attachments for bug %i' % id)
+        for att in satts:
+            flash(jinja2.Markup('Found: %s, but with content-type %s, which is not allowed') % (att['file_name'], att['content_type']))
+        return bz_fromurl(url)
+
+    if len(atts) == 1:
+        att = atts[0]
+        return upload_bugzilla_patch(att['id'], att)
+
+    return render_template('bzfromurl_chooseatt.html', attachments=atts)
+
+@app.route("/bugzilla/<int:patchid>")
+def upload_bugzilla_patch(patchid, att=None):
+    patchid = int(patchid)
+
+    if not att:
+        att = bzsp.Bug.attachments({'attachment_ids': patchid})['attachments'].values()[0]
+    if att['content_type'] not in patch_content_types:
+        return jinja2.Markup("Content-type not in %r; got %s instead") % (patch_content_types, att['content_type'])
+    user = bzsp.User.get({'names': att['creator']})['users'][0]
 
     author = user['real_name'] + " <" + user['name'] + "> "
     commitmessage = att['summary'] + "\n\nBug: " + str(att['bug_id'])

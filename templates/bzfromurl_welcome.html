@@ -1,0 +1,11 @@
+{% with messages = get_flashed_messages() %}
+  {% if messages %}
+    {% for message in messages %}
+    <b>{{ message }}</b><br>
+    {% endfor %}
+  {% endif %}
+{% endwith %}
+<br>
+Example URLs: <ul><li>https://bugzilla.wikimedia.org/show_bug.cgi?id=54995</li><li>https://bugzilla.wikimedia.org/attachment.cgi?id=13438</li></ul>
+
+<form method="POST" action="#">url: <input type="url" name="url" value="{{oldurl}}"><input type="submit"></form>
