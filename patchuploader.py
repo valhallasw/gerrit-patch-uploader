@@ -147,6 +147,15 @@ def apply_and_upload(user, project, committer, message, patch):
         if p.returncode != 0:
             raise Exception("Clone failed")
 
+        cmd = ['git', 'rev-parse', '--abbrev-ref', 'HEAD']
+        yield "\n" + " ".join(cmd) + "\n"
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=tempd)
+        branch = p.communicate()[0]
+        if p.returncode != 0:
+            raise Exception("Could not determine branch")
+        branch = branch.strip()
+        yield jinja2.Markup("Will commit to branch: %s\n\n" % branch)
+
         cmd = ['git', 'config', 'user.name', '[[mw:User:%s]]' % user.encode('utf-8')]
         yield " ".join(cmd) + "\n"
         p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=tempd)
@@ -187,8 +196,8 @@ def apply_and_upload(user, project, committer, message, patch):
         if p.returncode != 0:
             raise Exception("Commit failed (incorrect format used for author?)")
 
-        yield "\ngit push origin HEAD:refs/for/master\n"
-        p = subprocess.Popen(["git", "push", "origin", "HEAD:refs/for/master"],
+        yield jinja2.Markup("\ngit push origin HEAD:refs/for/%s\n") % branch
+        p = subprocess.Popen(["git", "push", "origin", "HEAD:refs/for/%s" % branch],
                              stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=tempd)
         pushresult = p.communicate(message)[0].replace("\x1b[K", "")
         yield pushresult
