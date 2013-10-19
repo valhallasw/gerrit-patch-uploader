@@ -5,6 +5,7 @@ import shutil
 import os
 import re
 import xmlrpclib
+import pipes
 
 os.environ['PATH'] = os.environ['PATH'] + ":/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/usr/games"
 os.environ['LANG'] = 'en_US.UTF-8'
@@ -127,7 +128,13 @@ def submit():
     if not patch:
         return 'patch not set'
 
-    return Response(jinja2.escape(e) for e in apply_and_upload(user, project, committer, message, patch))
+    note = """This commit was uploaded using the Gerrit Patch Uploader [1].
+
+Please contact the patch author, %s, for questions/improvements. If this patch was transferred from Bugzilla, a Bug: line will be present in the commit message.
+
+[1] https://tools.wmflabs.org/gerrit-patch-uploader/""" % committer
+
+    return Response(jinja2.escape(e) for e in apply_and_upload(user, project, committer, message, patch, note))
 
 def run_command(cmd):
     yield " ".join(cmd) + "\n"
@@ -136,7 +143,7 @@ def run_command(cmd):
     lines = "\n".join([line for line in lines if "[K" not in line])
     yield lines
 
-def apply_and_upload(user, project, committer, message, patch):
+def apply_and_upload(user, project, committer, message, patch, note=None):
     yield jinja2.Markup("Result from uploading patch: <br><div style='font-family: monospace;white-space: pre;'>")
     tempd = tempfile.mkdtemp()
     try:
@@ -196,6 +203,15 @@ def apply_and_upload(user, project, committer, message, patch):
         if p.returncode != 0:
             raise Exception("Commit failed (incorrect format used for author?)")
 
+        yield "\ngit rev-list -1 HEAD\n"
+        p = subprocess.Popen(["git", "rev-list", "-1", "HEAD"],
+                             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=tempd)
+        sha1 = p.communicate()[0].strip()
+        if p.returncode != 0:
+            raise Exception("Could not determine commit SHA1")
+
+        yield sha1 + "\n\n"
+
         yield jinja2.Markup("\ngit push origin HEAD:refs/for/%s\n") % branch
         p = subprocess.Popen(["git", "push", "origin", "HEAD:refs/for/%s" % branch],
                              stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=tempd)
@@ -209,9 +225,21 @@ def apply_and_upload(user, project, committer, message, patch):
         yield "Uploaded patches:"
         yield jinja2.Markup("<ul>")
         patches = re.findall('https://gerrit.wikimedia.org/.*', pushresult)
+
         for patch in patches:
             yield jinja2.Markup('<li><a href="%s">%s</a>') % (patch, patch)
         yield jinja2.Markup("</ul>")
+
+
+        if note:
+            yield jinja2.Markup("<div>Submitting note: %s</div><br>") % note
+            note = pipes.quote(note)
+            sha1 = pipes.quote(sha1)
+            p = subprocess.Popen(["ssh", "gerrit", "gerrit review %s -m %s" % (sha1, note)],
+                                 stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=tempd)
+            p.communicate()
+            if p.returncode != 0:
+                raise Exception("Note could not be submitted correctly")
 
         if len(patches) == 1:
             yield "Automatically redirecting in 5 seconds..."
