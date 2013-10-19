@@ -1,0 +1,2 @@
+#!/bin/bash
+ssh tools-login.wmflabs.org become gerrit-patch-uploader ./domerge
