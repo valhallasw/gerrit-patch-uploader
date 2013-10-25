@@ -7,7 +7,7 @@ import re
 import xmlrpclib
 import pipes
 
-os.environ['PATH'] = os.environ['PATH'] + ":/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/usr/games"
+os.environ['PATH'] += ":/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/usr/games"
 os.environ['LANG'] = 'en_US.UTF-8'
 os.chdir(os.path.normpath(os.path.split(__file__)[0]))
 
@@ -38,15 +38,19 @@ def get_projects():
         cache.set('projects', projects)
     return projects
 
+
 @app.route("/")
 def index():
-   return render_template('index.html', projects=get_projects(), username=mwoauth.get_current_user(), committer_email=config.committer_email)
+    return render_template('index.html', projects=get_projects(), username=mwoauth.get_current_user(),
+                           committer_email=config.committer_email)
+
 
 @app.route("/bugzilla/fromurl", methods=["GET"])
 def bz_fromurl(oldurl=''):
     return render_template('bzfromurl_welcome.html', oldurl=oldurl)
 
 patch_content_types = ['text/plain']
+
 
 @app.route("/bugzilla/fromurl", methods=["POST"])
 def bz_fromurl_post():
@@ -72,7 +76,8 @@ def bz_fromurl_post():
     if len(atts) == 0:
         flash('Error: no viable attachments for bug %i' % id)
         for att in satts:
-            flash(jinja2.Markup('Found: %s, but with content-type %s, which is not allowed') % (att['file_name'], att['content_type']))
+            flash(jinja2.Markup('Found: %s, but with content-type %s, which is not allowed')
+                  % (att['file_name'], att['content_type']))
         return bz_fromurl(url)
 
     if len(atts) == 1:
@@ -80,6 +85,7 @@ def bz_fromurl_post():
         return upload_bugzilla_patch(att['id'], att)
 
     return render_template('bzfromurl_chooseatt.html', attachments=atts)
+
 
 @app.route("/bugzilla/<int:patchid>")
 def upload_bugzilla_patch(patchid, att=None):
@@ -100,8 +106,10 @@ def upload_bugzilla_patch(patchid, att=None):
     except UnicodeDecodeException:
         patch = patch.decode('latin-1')
 
-    return render_template('index.html', projects=get_projects(), username=mwoauth.get_current_user(), committer_email=config.committer_email,
-                           author=author, commitmessage=commitmessage, patch=patch)
+    return render_template('index.html', projects=get_projects(), username=mwoauth.get_current_user(),
+                           committer_email=config.committer_email, author=author, commitmessage=commitmessage,
+                           patch=patch)
+
 
 @app.route("/submit", methods=["POST"])
 def submit():
@@ -136,12 +144,14 @@ Please contact the patch author, %s, for questions/improvements. If this patch w
 
     return Response(jinja2.escape(e) for e in apply_and_upload(user, project, committer, message, patch, note))
 
+
 def run_command(cmd):
     yield " ".join(cmd) + "\n"
     p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     lines = p.communicate()[0].split("\n")
     lines = "\n".join([line for line in lines if "[K" not in line])
     yield lines
+
 
 def apply_and_upload(user, project, committer, message, patch, note=None):
     yield jinja2.Markup("Result from uploading patch: <br><div style='font-family: monospace;white-space: pre;'>")
