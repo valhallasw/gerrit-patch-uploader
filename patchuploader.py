@@ -12,7 +12,7 @@ os.environ['LANG'] = 'en_US.UTF-8'
 os.chdir(os.path.normpath(os.path.split(__file__)[0]))
 
 import jinja2
-from flask import Flask, render_template, request, Response, redirect, url_for, flash
+from flask import Flask, render_template, request, Response, redirect, session, url_for, flash
 from werkzeug.contrib.cache import FileSystemCache
 from flask_mwoauth import MWOAuth
 
@@ -41,8 +41,9 @@ def get_projects():
 
 @app.route("/")
 def index():
+    author = session.get('author', '')
     return render_template('index.html', projects=get_projects(), username=mwoauth.get_current_user(),
-                           committer_email=config.committer_email)
+                           committer_email=config.committer_email, author=author)
 
 
 @app.route("/bugzilla/fromurl", methods=["GET"])
@@ -125,6 +126,7 @@ def submit():
     committer = request.form['committer']
     if not committer:
         return 'committer not set'
+    session['author'] = committer
     message = request.form['message']
     if not message:
         return 'message not set'
