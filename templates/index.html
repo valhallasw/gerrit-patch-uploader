@@ -65,7 +65,8 @@ Allowed patch formats: <ul style="font-family: monospace">
 </ul>
 <h2 style="margin-top:3em;">Upload a patch</h2>
 <form action="{{url_for('submit')}}" method="post" enctype="multipart/form-data">
-        <label for="project">Project: </label><br><select class="use-chosen" name="project" {{disabled}}>
+        <label for="project">Project: </label><br><select class="use-chosen" data-placeholder="Choose a project..." name="project" {{disabled}}>
+  <option></option>
   {% for project in projects %}
   <option>{{project}}</option>
   {% endfor %}
