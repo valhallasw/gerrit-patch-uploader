@@ -5,6 +5,7 @@
     <LINK rel="StyleSheet" href="//tools.wmflabs.org/style.css" type="text/css" media=screen>
     <style>textarea { font-family: monospace; }</style>
     <META charset="utf-8">
+    <link rel="stylesheet" href="{{url_for('static', filename='chosen.css')}}">
  </HEAD>
  <BODY>
     <a href="https://github.com/valhallasw/gerrit-patch-uploader"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub"></a>
@@ -64,7 +65,7 @@ Allowed patch formats: <ul style="font-family: monospace">
 </ul>
 <h2 style="margin-top:3em;">Upload a patch</h2>
 <form action="{{url_for('submit')}}" method="post" enctype="multipart/form-data">
-        <label for="project">Project: </label><br><select name="project" {{disabled}}>
+        <label for="project">Project: </label><br><select class="use-chosen" name="project" {{disabled}}>
   {% for project in projects %}
   <option>{{project}}</option>
   {% endfor %}
@@ -77,6 +78,9 @@ Allowed patch formats: <ul style="font-family: monospace">
          </form>
 </TD>
     </TABLE>
+ <script src="{{url_for('static', filename='jquery.1.6.4.js')}}" type="text/javascript"></script>
+ <script src="{{url_for('static', filename='chosen.jquery.js')}}" type="text/javascript"></script>
+ <script type="text/javascript">$('.use-chosen').chosen();</script>
   </BODY>
 </HTML>
 
