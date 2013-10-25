@@ -12,6 +12,7 @@ app.logger.setLevel(logging.DEBUG)
 app.logger.addHandler(logger)
 app.logger.debug(u"Flask server started " + time.asctime())
 
+
 @app.after_request
 def write_access_log(response):
     app.logger.debug(u"%s %s -> %s" % (time.asctime(), request.path, response.status_code))
