@@ -134,7 +134,7 @@ def submit():
     if fpatch:
         patch = fpatch.stream.read()
     else:
-        patch = request.form['patch']
+        patch = request.form['patch'].encode('utf-8').replace("\r\n", "\n")
     if not patch:
         return 'patch not set'
 
@@ -201,7 +201,7 @@ def apply_and_upload(user, project, committer, message, patch, note=None):
         for pc in patch_commands:
             yield "\n" + " ".join(pc) + " < patch\n"
             p = subprocess.Popen(pc, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=tempd)
-            yield p.communicate(patch.replace('\r\n', '\n').encode('utf-8'))[0]
+            yield p.communicate(patch)[0]
             if p.returncode == 0:
                 break
         yield "\n"
