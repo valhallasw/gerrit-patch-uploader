@@ -208,7 +208,15 @@ def apply_and_upload(user, project, committer, message, patch, note=None):
         if p.returncode != 0:
             raise Exception("Patch failed (is your patch in unified diff format, and does it patch apply cleanly to master?)")
 
-        yield "\ngit commit -a --author=\"" + committer + "\" -F - < message\n"
+        yield "\ngit add -A\n"
+        p = subprocess.Popen(["git", "add", "-A"],
+                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=tempd)
+        yield p.communicate()[0]
+        if p.returncode != 0:
+            raise Exception("Git add failed (were no files changed?)")
+
+
+        yield "\ngit commit --author=\"" + committer + "\" -F - < message\n"
         p = subprocess.Popen(["git", "commit", "-a", "--author=" + committer.encode('utf-8'), "-F", "-"],
                              stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=tempd)
         yield p.communicate(message.replace('\r\n', '\n').encode('utf-8'))[0]
