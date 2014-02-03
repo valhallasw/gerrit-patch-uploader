@@ -104,7 +104,7 @@ def upload_bugzilla_patch(patchid, att=None):
     patch = att['data'].data
     try:
         patch = patch.decode('utf-8')
-    except UnicodeDecodeException:
+    except UnicodeDecodeError:
         patch = patch.decode('latin-1')
 
     return render_template('index.html', projects=get_projects(), username=mwoauth.get_current_user(),
