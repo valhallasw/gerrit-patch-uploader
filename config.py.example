@@ -1,3 +1,4 @@
+# Make sure to chmod 600 this config file!
 app_secret_key = ''
 oauth_key = ''
 oauth_secret = ''
