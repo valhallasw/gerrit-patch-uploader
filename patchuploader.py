@@ -201,7 +201,7 @@ def apply_and_upload(user, project, committer, message, patch, note=None):
         for pc in patch_commands:
             yield "\n" + " ".join(pc) + " < patch\n"
             p = subprocess.Popen(pc, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=tempd)
-            yield p.communicate(patch)[0]
+            yield p.communicate(patch)[0] # patch is already bytes, so should not be .encode()d!
             if p.returncode == 0:
                 break
         yield "\n"
@@ -235,7 +235,7 @@ def apply_and_upload(user, project, committer, message, patch, note=None):
         yield jinja2.Markup("\ngit push origin HEAD:refs/for/%s\n") % branch
         p = subprocess.Popen(["git", "push", "origin", "HEAD:refs/for/%s" % branch],
                              stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=tempd)
-        pushresult = p.communicate(message)[0].replace("\x1b[K", "")
+        pushresult = p.communicate(message.encode('utf-8'))[0].replace("\x1b[K", "")
         yield pushresult
         if p.returncode != 0:
             raise Exception("Push failed")
