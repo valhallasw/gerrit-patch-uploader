@@ -201,7 +201,7 @@ def apply_and_upload(user, project, committer, message, patch, note=None):
         for pc in patch_commands:
             yield "\n" + " ".join(pc) + " < patch\n"
             p = subprocess.Popen(pc, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=tempd)
-            yield p.communicate(patch)[0] # patch is already bytes, so should not be .encode()d!
+            yield p.communicate(patch)[0].decode('utf-8') # patch is already bytes, so should not be .encode()d!
             if p.returncode == 0:
                 break
         yield "\n"
@@ -211,7 +211,7 @@ def apply_and_upload(user, project, committer, message, patch, note=None):
         yield "\ngit add -A\n"
         p = subprocess.Popen(["git", "add", "-A"],
                              stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=tempd)
-        yield p.communicate()[0]
+        yield p.communicate()[0].decode('utf-8')
         if p.returncode != 0:
             raise Exception("Git add failed (were no files changed?)")
 
@@ -219,14 +219,14 @@ def apply_and_upload(user, project, committer, message, patch, note=None):
         yield "\ngit commit --author=\"" + committer + "\" -F - < message\n"
         p = subprocess.Popen(["git", "commit", "-a", "--author=" + committer.encode('utf-8'), "-F", "-"],
                              stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=tempd)
-        yield p.communicate(message.replace('\r\n', '\n').encode('utf-8'))[0]
+        yield p.communicate(message.replace('\r\n', '\n').encode('utf-8'))[0].decode('utf-8')
         if p.returncode != 0:
             raise Exception("Commit failed (incorrect format used for author?)")
 
         yield "\ngit rev-list -1 HEAD\n"
         p = subprocess.Popen(["git", "rev-list", "-1", "HEAD"],
                              stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=tempd)
-        sha1 = p.communicate()[0].strip()
+        sha1 = p.communicate()[0].decode('utf-8').strip()
         if p.returncode != 0:
             raise Exception("Could not determine commit SHA1")
 
@@ -235,7 +235,7 @@ def apply_and_upload(user, project, committer, message, patch, note=None):
         yield jinja2.Markup("\ngit push origin HEAD:refs/for/%s\n") % branch
         p = subprocess.Popen(["git", "push", "origin", "HEAD:refs/for/%s" % branch],
                              stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=tempd)
-        pushresult = p.communicate(message.encode('utf-8'))[0].replace("\x1b[K", "")
+        pushresult = p.communicate(message.encode('utf-8'))[0].replace("\x1b[K", "").decode('utf-8')
         yield pushresult
         if p.returncode != 0:
             raise Exception("Push failed")
@@ -269,7 +269,7 @@ def apply_and_upload(user, project, committer, message, patch, note=None):
         yield jinja2.Markup("<b>Upload failed</b><br>")
         yield jinja2.Markup("Reason: <i>%s</i> (check log above for details)") % e
     finally:
-        shutil.rmtree(tempd)
+        yield tempd #shutil.rmtree(tempd)
 
 
 if __name__ == "__main__":
