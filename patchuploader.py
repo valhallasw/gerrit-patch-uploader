@@ -131,7 +131,11 @@ def apply_and_upload(user, project, committer, message, patch, note=None):
             raise Exception("Installing commit message hook failed")
 
         yield "\n"
-        patch_commands = [["git", "apply"], ["patch", "-p0"], ["patch", "-p1"]]
+        patch_commands = [
+            ["git", "apply"],
+            ["patch", "--no-backup-if-mismatch", "-p0"],
+            ["patch", "--no-backup-if-mismatch", "-p1"],
+        ]
         for pc in patch_commands:
             yield "\n" + " ".join(pc) + " < patch\n"
             p = subprocess.Popen(pc, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=tempd)
