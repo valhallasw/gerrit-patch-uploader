@@ -140,7 +140,7 @@ def submit():
 
     note = """This commit was uploaded using the Gerrit Patch Uploader [1].
 
-Please contact the patch author, %s, for questions/improvements. If this patch was transferred from Bugzilla, a Bug: line will be present in the commit message.
+Please contact the patch author, %s, for questions/improvements. If this patch was transferred from the issue tracker, a Bug: line will be present in the commit message.
 
 [1] https://tools.wmflabs.org/gerrit-patch-uploader/""" % committer
 
