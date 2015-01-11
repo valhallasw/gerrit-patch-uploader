@@ -46,72 +46,6 @@ def index():
                            committer_email=config.committer_email, author=author)
 
 
-@app.route("/bugzilla/fromurl", methods=["GET"])
-def bz_fromurl(oldurl=''):
-    return render_template('bzfromurl_welcome.html', oldurl=oldurl)
-
-patch_content_types = ['text/plain']
-
-
-@app.route("/bugzilla/fromurl", methods=["POST"])
-def bz_fromurl_post():
-    url = request.form.get('url')
-    if not isinstance(url, basestring):
-        return bz_fromurl()
-
-    if not u'attachment.cgi' in url and not u'bug.cgi' in url:
-        flash('Error: URL not recognised. Does it contain attachment.cgi/bug.cgi?')
-        return bz_fromurl(url)
-
-    try:
-        id = int(re.search(r'id=([0-9]+)', url).groups()[0])
-    except AttributeError:
-        flash('Error: could not parse ID in string. Does it contain an id=... parameter?')
-        return bz_fromurl(url)
-
-    if u'attachment.cgi' in url:
-        return redirect(url_for('upload_bugzilla_patch', patchid=id))
-
-    satts = bzsp.Bug.attachments({'ids': id})['bugs'].values()[0]
-    atts = [att for att in satts if att['content_type'] in patch_content_types]
-    if len(atts) == 0:
-        flash('Error: no viable attachments for bug %i' % id)
-        for att in satts:
-            flash(jinja2.Markup('Found: %s, but with content-type %s, which is not allowed')
-                  % (att['file_name'], att['content_type']))
-        return bz_fromurl(url)
-
-    if len(atts) == 1:
-        att = atts[0]
-        return upload_bugzilla_patch(att['id'], att)
-
-    return render_template('bzfromurl_chooseatt.html', attachments=atts)
-
-
-@app.route("/bugzilla/<int:patchid>")
-def upload_bugzilla_patch(patchid, att=None):
-    patchid = int(patchid)
-
-    if not att:
-        att = bzsp.Bug.attachments({'attachment_ids': patchid})['attachments'].values()[0]
-    if att['content_type'] not in patch_content_types:
-        return jinja2.Markup("Content-type not in %r; got %s instead") % (patch_content_types, att['content_type'])
-    user = bzsp.User.get({'names': att['creator']})['users'][0]
-
-    author = user['real_name'] + " <" + user['name'] + "> "
-    commitmessage = att['summary'] + "\n\nBug: " + str(att['bug_id'])
-
-    patch = att['data'].data
-    try:
-        patch = patch.decode('utf-8')
-    except UnicodeDecodeError:
-        patch = patch.decode('latin-1')
-
-    return render_template('index.html', projects=get_projects(), username=mwoauth.get_current_user(),
-                           committer_email=config.committer_email, author=author, commitmessage=commitmessage,
-                           patch=patch)
-
-
 @app.route("/submit", methods=["POST"])
 def submit():
     user = mwoauth.get_current_user(False)
@@ -140,7 +74,7 @@ def submit():
 
     note = """This commit was uploaded using the Gerrit Patch Uploader [1].
 
-Please contact the patch author, %s, for questions/improvements. If this patch was transferred from Bugzilla, a Bug: line will be present in the commit message.
+Please contact the patch author, %s, for questions/improvements.
 
 [1] https://tools.wmflabs.org/gerrit-patch-uploader/""" % committer
 

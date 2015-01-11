@@ -38,7 +38,6 @@
           <div class="collapse navbar-collapse">
             <ul class="nav navbar-nav">
               <li><a href="#"><b>Upload a patch</b></a>
-              <li><a href="bugzilla/fromurl">Upload a patch from <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/7/7e/Buggie_new.png/13px-Buggie_new.png" height=18 width=13> <b>bugzilla</b></a></li>
               <li><a href="https://gerrit.wikimedia.org/r/#/q/owner:%22gerrit+patch+uploader%22+status:open,n,z"><b>Browse</b> existing changesets on <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/4/4d/Gerrit_icon.svg/18px-Gerrit_icon.svg.png" height=18 width=18> Gerrit</a></li>
               {% if username %}
               <li><a href="{{url_for('mwoauth.logout')}}">Log out <b>{{username}}</b></a></li>
