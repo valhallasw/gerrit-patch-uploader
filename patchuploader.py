@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 import subprocess
 import tempfile
-import shutil
 import os
 import re
 import xmlrpclib
@@ -12,7 +11,7 @@ os.environ['LANG'] = 'en_US.UTF-8'
 os.chdir(os.path.normpath(os.path.split(__file__)[0]))
 
 import jinja2
-from flask import Flask, render_template, request, Response, redirect, session, url_for, flash
+from flask import Flask, render_template, request, Response, session
 from werkzeug.contrib.cache import FileSystemCache
 from flask_mwoauth import MWOAuth
 
@@ -139,12 +138,14 @@ def apply_and_upload(user, project, committer, message, patch, note=None):
         for pc in patch_commands:
             yield "\n" + " ".join(pc) + " < patch\n"
             p = subprocess.Popen(pc, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=tempd)
-            yield p.communicate(patch)[0].decode('utf-8') # patch is already bytes, so should not be .encode()d!
+            yield p.communicate(patch)[0].decode('utf-8')  # patch is already bytes, so should not be .encode()d!
             if p.returncode == 0:
                 break
         yield "\n"
         if p.returncode != 0:
-            raise Exception("Patch failed (is your patch in unified diff format, and does it patch apply cleanly to master?)")
+            raise Exception(
+                "Patch failed (is your patch in unified diff format, and does it patch apply cleanly to master?)"
+            )
 
         yield "\ngit add -A\n"
         p = subprocess.Popen(["git", "add", "-A"],
@@ -152,7 +153,6 @@ def apply_and_upload(user, project, committer, message, patch, note=None):
         yield p.communicate()[0].decode('utf-8')
         if p.returncode != 0:
             raise Exception("Git add failed (were no files changed?)")
-
 
         yield "\ngit commit --author=\"" + committer + "\" -F - < message\n"
         p = subprocess.Popen(["git", "commit", "-a", "--author=" + committer.encode('utf-8'), "-F", "-"],
@@ -188,7 +188,6 @@ def apply_and_upload(user, project, committer, message, patch, note=None):
             yield jinja2.Markup('<li><a href="%s">%s</a>') % (patch, patch)
         yield jinja2.Markup("</ul>")
 
-
         if note:
             yield jinja2.Markup("<div>Submitting note: %s</div><br>") % note
             note = pipes.quote(note.encode('utf-8'))
@@ -207,7 +206,7 @@ def apply_and_upload(user, project, committer, message, patch, note=None):
         yield jinja2.Markup("<b>Upload failed</b><br>")
         yield jinja2.Markup("Reason: <i>%s</i> (check log above for details)") % e
     finally:
-        yield tempd #shutil.rmtree(tempd)
+        yield tempd
 
 
 if __name__ == "__main__":
