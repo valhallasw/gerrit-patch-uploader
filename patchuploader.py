@@ -17,6 +17,8 @@ from flask_mwoauth import MWOAuth
 
 import config
 
+GIT_PATH = os.path.expanduser('~/git/bin/git')
+
 app = Flask(__name__)
 app.secret_key = config.app_secret_key
 
@@ -92,14 +94,14 @@ def apply_and_upload(user, project, committer, message, patch, note=None):
     yield jinja2.Markup("Result from uploading patch: <br><div style='font-family: monospace;white-space: pre;'>")
     tempd = tempfile.mkdtemp()
     try:
-        cmd = ['git', 'clone', '--depth=1', 'ssh://gerrit/' + project, tempd]
+        cmd = [GIT_PATH, 'clone', '--depth=1', 'ssh://gerrit/' + project, tempd]
         yield " ".join(cmd) + "\n"
         p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=tempd)
         yield p.communicate()[0]
         if p.returncode != 0:
             raise Exception("Clone failed")
 
-        cmd = ['git', 'rev-parse', '--abbrev-ref', 'HEAD']
+        cmd = [GIT_PATH, 'rev-parse', '--abbrev-ref', 'HEAD']
         yield "\n" + " ".join(cmd) + "\n"
         p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=tempd)
         branch = p.communicate()[0]
@@ -108,14 +110,14 @@ def apply_and_upload(user, project, committer, message, patch, note=None):
         branch = branch.strip()
         yield jinja2.Markup("Will commit to branch: %s\n\n" % branch)
 
-        cmd = ['git', 'config', 'user.name', '[[mw:User:%s]]' % user.encode('utf-8')]
+        cmd = [GIT_PATH, 'config', 'user.name', '[[mw:User:%s]]' % user.encode('utf-8')]
         yield " ".join(cmd) + "\n"
         p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=tempd)
         yield p.communicate()[0]
         if p.returncode != 0:
             raise Exception("Git Config failed (should never happen)!")
 
-        cmd = ['git', 'config', 'user.email', config.committer_email]
+        cmd = [GIT_PATH, 'config', 'user.email', config.committer_email]
         yield " ".join(cmd) + "\n"
         p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=tempd)
         yield p.communicate()[0]
@@ -131,7 +133,7 @@ def apply_and_upload(user, project, committer, message, patch, note=None):
 
         yield "\n"
         patch_commands = [
-            ["git", "apply"],
+            [GIT_PATH, "apply"],
             ["patch", "--no-backup-if-mismatch", "-p0"],
             ["patch", "--no-backup-if-mismatch", "-p1"],
         ]
@@ -147,22 +149,22 @@ def apply_and_upload(user, project, committer, message, patch, note=None):
                 "Patch failed (is your patch in unified diff format, and does it patch apply cleanly to master?)"
             )
 
-        yield "\ngit add -A\n"
-        p = subprocess.Popen(["git", "add", "-A"],
+        yield "\n%s add -A\n" % GIT_PATH
+        p = subprocess.Popen([GIT_PATH, "add", "-A"],
                              stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=tempd)
         yield p.communicate()[0].decode('utf-8')
         if p.returncode != 0:
             raise Exception("Git add failed (were no files changed?)")
 
-        yield "\ngit commit --author=\"" + committer + "\" -F - < message\n"
-        p = subprocess.Popen(["git", "commit", "-a", "--author=" + committer.encode('utf-8'), "-F", "-"],
+        yield "\n%s commit --author='%s' -F - < message\n" % (GIT_PATH, committer)
+        p = subprocess.Popen([GIT_PATH, "commit", "-a", "--author=" + committer.encode('utf-8'), "-F", "-"],
                              stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=tempd)
         yield p.communicate(message.replace('\r\n', '\n').encode('utf-8'))[0].decode('utf-8')
         if p.returncode != 0:
             raise Exception("Commit failed (incorrect format used for author?)")
 
-        yield "\ngit rev-list -1 HEAD\n"
-        p = subprocess.Popen(["git", "rev-list", "-1", "HEAD"],
+        yield "\n%s rev-list -1 HEAD\n" % GIT_PATH
+        p = subprocess.Popen([GIT_PATH, "rev-list", "-1", "HEAD"],
                              stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=tempd)
         sha1 = p.communicate()[0].decode('utf-8').strip()
         if p.returncode != 0:
@@ -170,8 +172,8 @@ def apply_and_upload(user, project, committer, message, patch, note=None):
 
         yield sha1 + "\n\n"
 
-        yield jinja2.Markup("\ngit push origin HEAD:refs/for/%s\n") % branch
-        p = subprocess.Popen(["git", "push", "origin", "HEAD:refs/for/%s" % branch],
+        yield jinja2.Markup("\n%s push origin HEAD:refs/for/%s\n") % (GIT_PATH, branch)
+        p = subprocess.Popen([GIT_PATH, "push", "origin", "HEAD:refs/for/%s" % branch],
                              stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=tempd)
         pushresult = p.communicate(message.encode('utf-8'))[0].replace("\x1b[K", "").decode('utf-8')
         yield pushresult
