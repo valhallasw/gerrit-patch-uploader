@@ -208,7 +208,7 @@ def apply_and_upload(user, project, committer, message, patch, note=None):
         yield jinja2.Markup("<b>Upload failed</b><br>")
         yield jinja2.Markup("Reason: <i>%s</i> (check log above for details)") % e
     finally:
-        yield tempd
+        shutil.rmtree(tempd)
 
 
 if __name__ == "__main__":
