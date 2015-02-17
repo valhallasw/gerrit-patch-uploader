@@ -5,6 +5,7 @@ import os
 import re
 import xmlrpclib
 import pipes
+import shutil
 
 os.environ['PATH'] += ":/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/usr/games"
 os.environ['LANG'] = 'en_US.UTF-8'
