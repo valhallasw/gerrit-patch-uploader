@@ -6,6 +6,7 @@ import re
 import xmlrpclib
 import pipes
 import shutil
+import binascii
 
 os.environ['PATH'] += ":/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/usr/games"
 os.environ['LANG'] = 'en_US.UTF-8'
@@ -91,6 +92,17 @@ def run_command(cmd):
     yield lines
 
 
+def prepare_message(message):
+    message = message.replace("\r\n", "\n")
+    message = message.split("\n")
+
+    if not message[-1].startswith('Change-Id: '):
+        if not re.match(r"[a-zA-Z\-]+: ", message[-1]):
+            message.append("")
+        message.append('Change-Id: I%s' % binascii.b2a_hex(os.urandom(20)))
+
+    return "\n".join(message) + "\n"
+
 def apply_and_upload(user, project, committer, message, patch, note=None):
     yield jinja2.Markup("Result from uploading patch: <br><div style='font-family: monospace;white-space: pre;'>")
     tempd = tempfile.mkdtemp()
@@ -125,13 +137,6 @@ def apply_and_upload(user, project, committer, message, patch, note=None):
         if p.returncode != 0:
             raise Exception("Git Config failed (should never happen)!")
 
-        yield "\nscp -p gerrit:hooks/commit-msg .git/hooks/"
-        p = subprocess.Popen(["scp", "-p", "gerrit:hooks/commit-msg", ".git/hooks"],
-                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=tempd)
-        yield p.communicate()[0]
-        if p.returncode != 0:
-            raise Exception("Installing commit message hook failed")
-
         yield "\n"
         patch_commands = [
             [GIT_PATH, "apply"],
@@ -160,7 +165,9 @@ def apply_and_upload(user, project, committer, message, patch, note=None):
         yield "\n%s commit --author='%s' -F - < message\n" % (GIT_PATH, committer)
         p = subprocess.Popen([GIT_PATH, "commit", "-a", "--author=" + committer.encode('utf-8'), "-F", "-"],
                              stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=tempd)
-        yield p.communicate(message.replace('\r\n', '\n').encode('utf-8'))[0].decode('utf-8')
+        message = prepare_message(message)
+        yield message + "\n\n"
+        yield p.communicate(message.encode('utf-8'))[0].decode('utf-8')
         if p.returncode != 0:
             raise Exception("Commit failed (incorrect format used for author?)")
 
@@ -176,7 +183,7 @@ def apply_and_upload(user, project, committer, message, patch, note=None):
         yield jinja2.Markup("\n%s push origin HEAD:refs/for/%s\n") % (GIT_PATH, branch)
         p = subprocess.Popen([GIT_PATH, "push", "origin", "HEAD:refs/for/%s" % branch],
                              stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=tempd)
-        pushresult = p.communicate(message.encode('utf-8'))[0].replace("\x1b[K", "").decode('utf-8')
+        pushresult = p.communicate()[0].replace("\x1b[K", "").decode('utf-8')
         yield pushresult
         if p.returncode != 0:
             raise Exception("Push failed")
