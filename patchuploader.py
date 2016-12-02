@@ -192,7 +192,7 @@ def apply_and_upload(user, project, committer, message, patch, note=None):
 
         yield "Uploaded patches:"
         yield jinja2.Markup("<ul>")
-        patches = re.findall('https://gerrit.wikimedia.org/.*', pushresult)
+        patches = re.findall('https://gerrit.wikimedia.org/[^ ]*', pushresult)
 
         for patch in patches:
             yield jinja2.Markup('<li><a href="%s">%s</a>') % (patch, patch)
