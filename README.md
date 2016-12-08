@@ -13,7 +13,7 @@ line and follow that URL.
 
 
 To upload an update to an existing patch, copy the Change-Id line from that changeset, and add it to the
-bottom of your commit message.
+bottom of your commit message. Ensure there is NO empty line at the end of the message.
 
 Implementation notes
 --------------------
