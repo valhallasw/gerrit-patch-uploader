@@ -97,7 +97,7 @@
             </li>
             
             <li>            
-            Committer: <br><tt>[[mw:User:{{username}}]] ({{committer_email}})</tt><br/>
+            Committer: <br><tt>[[mw:User:{% if not username %}Your username{% else %}{{username}}{% endif %}]] ({{committer_email}})</tt><br/>
             </li>
             
             <li>
