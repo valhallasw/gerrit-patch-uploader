@@ -3,7 +3,6 @@ import subprocess
 import tempfile
 import os
 import re
-import xmlrpclib
 import pipes
 import shutil
 import binascii
@@ -28,9 +27,6 @@ mwoauth = MWOAuth(consumer_key=config.oauth_key, consumer_secret=config.oauth_se
 app.register_blueprint(mwoauth.bp)
 
 cache = FileSystemCache('cache')
-
-bzsp = xmlrpclib.ServerProxy('https://bugzilla.wikimedia.org/xmlrpc.cgi')
-
 
 def get_projects():
     projects = cache.get('projects')
