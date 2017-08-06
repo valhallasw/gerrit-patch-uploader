@@ -1,0 +1,7 @@
+{
+    "name" : "Gerrit Patch Uploader",
+    "description" : "A tool to upload patches to Gerrit without using git or git-review.",
+    "url" : "http://tools.wmflabs.org/gerrit-patch-uploader/",
+    "keywords" : "gerrit, git, patch",
+    "author" : "Merlijn van Deen"
+}
