@@ -22,7 +22,7 @@
 
   <body>
     <div id="wrap">
-      <a href="https://github.com/valhallasw/gerrit-patch-uploader"><img style="position: absolute; top: 0; left: 0; border: 0; margin: 0; z-index: 9000;" src="{{url_for('static', filename='ribbon.png')}}" alt="Fork me on GitHub"></a>
+      <a href="https://github.com/valhallasw/gerrit-patch-uploader"><img style="position: absolute; top: 0; left: 0; border: 0; margin: 0; z-index: 9000; transform: rotate(270deg);" src="//tools-static.wmflabs.org/static/logos/forkme_right_darkblue.png" alt="Fork me on GitHub"></a>
       
       <!-- Fixed navbar -->
       <div class="navbar navbar-default navbar-static-top" role="navigation">
@@ -42,7 +42,7 @@
               {% if username %}
               <li><a href="{{url_for('mwoauth.logout')}}">Log out <b>{{username}}</b></a></li>
               {% else %}
-              <li><a href="login"><b>Log in</b> using your <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/3/3d/Mediawiki-logo.png/24px-Mediawiki-logo.png" height=18 width=24> mediawiki.org account</a></li>
+              <li><a href="login"><b>Log in</b> using your <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/3/3d/Mediawiki-logo.png/24px-Mediawiki-logo.png" height=18 width=24> Mediawiki.org account</a></li>
               {% endif %}
              </ul>
           </div><!--/.nav-collapse -->
@@ -61,12 +61,12 @@
         <div class="page-header">
           <h1 style="margin-top:1em;">Gerrit Patch Uploader</h1>
         </div>
-        <p>This tool allows you to upload a patchset to Wikimedia's Gerrit without
+        <p>This tool allows you to upload a patchset to <a href="https://www.mediawiki.org/wiki/Gerrit">Wikimedia's Gerrit</a> without
            using git, git-review, or even creating a Gerrit account.</p>
 
            {% if not username %}
              {% set disabled = 'disabled' %}
-             <div class="alert alert-danger">You need to <b><a href="login">log in</a></b> with your mediawiki.org account to continue.</div>
+             <div class="alert alert-danger">You need to <b><a href="login">log in</a></b> with your Wikimedia / Mediawiki.org account to continue.</div>
            {% else %}
              {% set disabled = '' %}
            {% endif %}
@@ -97,7 +97,7 @@
             </li>
             
             <li>            
-            Committer: <br><tt>[[mw:User:{{username}}]] ({{committer_email}})</tt><br/>
+            Committer: <br><tt>[[mw:User:{% if not username %}Your username{% else %}{{username}}{% endif %}]] ({{committer_email}})</tt><br/>
             </li>
             
             <li>
@@ -106,7 +106,7 @@
             </li>
             
             <li>            
-            <label for="fpatch">Patch:</label><input type="file" name="fpatch" id="fpatch"> (or paste below)<br>
+            <label for="fpatch">Patch:</label><input type="file" name="fpatch" id="fpatch" {{disabled}}> (or paste below)<br>
             <textarea cols="75" rows="10" name="patch" {{disabled}}>{{patch}}</textarea>
             </li>
             
