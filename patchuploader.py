@@ -7,9 +7,8 @@ import pipes
 import shutil
 import binascii
 
-os.environ['PATH'] += ":/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/usr/games"
-os.environ['LANG'] = 'en_US.UTF-8'
-os.chdir(os.path.normpath(os.path.split(__file__)[0]))
+FILE_DIR = os.path.normpath(os.path.split(__file__)[0])
+os.chdir(FILE_DIR)
 
 import jinja2
 from flask import Flask, render_template, request, Response, session
@@ -18,7 +17,9 @@ from flask_mwoauth import MWOAuth
 
 import config
 
-GIT_PATH = os.path.expanduser('~/git/bin/git')
+GIT_PATH = 'git'
+PATCH_PATH = 'patch'
+RUN_ENV = {'PATH': FILE_DIR + "/bin", 'LANG': 'en_US.UTF-8'}
 
 app = Flask(__name__)
 app.secret_key = config.app_secret_key
@@ -105,14 +106,14 @@ def apply_and_upload(user, project, committer, message, patch, note=None):
     try:
         cmd = [GIT_PATH, 'clone', '--depth=1', 'ssh://gerrit/' + project, tempd]
         yield " ".join(cmd) + "\n"
-        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=tempd)
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=tempd, env=RUN_ENV)
         yield p.communicate()[0]
         if p.returncode != 0:
             raise Exception("Clone failed")
 
         cmd = [GIT_PATH, 'rev-parse', '--abbrev-ref', 'HEAD']
         yield "\n" + " ".join(cmd) + "\n"
-        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=tempd)
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=tempd, env=RUN_ENV)
         branch = p.communicate()[0]
         if p.returncode != 0:
             raise Exception("Could not determine branch")
@@ -121,14 +122,14 @@ def apply_and_upload(user, project, committer, message, patch, note=None):
 
         cmd = [GIT_PATH, 'config', 'user.name', '[[mw:User:%s]]' % user.encode('utf-8')]
         yield " ".join(cmd) + "\n"
-        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=tempd)
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=tempd, env=RUN_ENV)
         yield p.communicate()[0]
         if p.returncode != 0:
             raise Exception("Git Config failed (should never happen)!")
 
         cmd = [GIT_PATH, 'config', 'user.email', config.committer_email]
         yield " ".join(cmd) + "\n"
-        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=tempd)
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=tempd, env=RUN_ENV)
         yield p.communicate()[0]
         if p.returncode != 0:
             raise Exception("Git Config failed (should never happen)!")
@@ -136,12 +137,12 @@ def apply_and_upload(user, project, committer, message, patch, note=None):
         yield "\n"
         patch_commands = [
             [GIT_PATH, "apply"],
-            ["patch", "--no-backup-if-mismatch", "-p0"],
-            ["patch", "--no-backup-if-mismatch", "-p1"],
+            [PATCH_PATH, "--no-backup-if-mismatch", "-p0", "-u"],
+            [PATCH_PATH, "--no-backup-if-mismatch", "-p1", "-u"],
         ]
         for pc in patch_commands:
             yield "\n" + " ".join(pc) + " < patch\n"
-            p = subprocess.Popen(pc, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=tempd)
+            p = subprocess.Popen(pc, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=tempd, env=RUN_ENV)
             yield p.communicate(patch)[0].decode('utf-8')  # patch is already bytes, so should not be .encode()d!
             if p.returncode == 0:
                 break
@@ -153,14 +154,14 @@ def apply_and_upload(user, project, committer, message, patch, note=None):
 
         yield "\n%s add -A\n" % GIT_PATH
         p = subprocess.Popen([GIT_PATH, "add", "-A"],
-                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=tempd)
+                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=tempd, env=RUN_ENV)
         yield p.communicate()[0].decode('utf-8')
         if p.returncode != 0:
             raise Exception("Git add failed (were no files changed?)")
 
         yield "\n%s commit --author='%s' -F - < message\n" % (GIT_PATH, committer)
         p = subprocess.Popen([GIT_PATH, "commit", "-a", "--author=" + committer.encode('utf-8'), "-F", "-"],
-                             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=tempd)
+                             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=tempd, env=RUN_ENV)
         message = prepare_message(message)
         yield message + "\n\n"
         yield p.communicate(message.encode('utf-8'))[0].decode('utf-8')
@@ -169,7 +170,7 @@ def apply_and_upload(user, project, committer, message, patch, note=None):
 
         yield "\n%s rev-list -1 HEAD\n" % GIT_PATH
         p = subprocess.Popen([GIT_PATH, "rev-list", "-1", "HEAD"],
-                             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=tempd)
+                             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=tempd, env=RUN_ENV)
         sha1 = p.communicate()[0].decode('utf-8').strip()
         if p.returncode != 0:
             raise Exception("Could not determine commit SHA1")
@@ -199,7 +200,7 @@ def apply_and_upload(user, project, committer, message, patch, note=None):
             note = pipes.quote(note.encode('utf-8'))
             sha1 = pipes.quote(sha1.encode('utf-8'))
             p = subprocess.Popen(["ssh", "gerrit", "gerrit review %s -m %s" % (sha1, note)],
-                                 stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=tempd)
+                                 stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=tempd, env=RUN_ENV)
             p.communicate()
             if p.returncode != 0:
                 raise Exception("Note could not be submitted correctly")
