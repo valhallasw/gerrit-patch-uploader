@@ -18,12 +18,13 @@ import config  # noqa, needs to be loaded from local path
 
 GIT_PATH = 'git'
 PATCH_PATH = 'patch'
-RUN_ENV = {'PATH': FILE_DIR + "/bin", 'LANG': 'en_US.UTF-8'}
+RUN_ENV = {'PATH': FILE_DIR + "/bin", 'LANG': 'en_US.UTF-8', 'LD_LIBRARY_PATH': FILE_DIR + "/lib"}
 
 app = Flask(__name__)
 app.secret_key = config.app_secret_key
 
 mwoauth = MWOAuth(consumer_key=config.oauth_key, consumer_secret=config.oauth_secret)
+mwoauth.handshaker.user_agent = 'Gerrit-Patch-Uploader by valhallasw using MWOAuth - http://tools.wmflabs.org/gerrit-patch-uploader'
 app.register_blueprint(mwoauth.bp)
 
 cache = FileSystemCache('cache')
@@ -32,7 +33,7 @@ cache = FileSystemCache('cache')
 def get_projects():
     projects = cache.get('projects')
     if projects is None:
-        p = subprocess.Popen(['ssh', 'gerrit', 'gerrit ls-projects'], stdout=subprocess.PIPE)
+        p = subprocess.Popen(['ssh', 'gerrit', 'gerrit ls-projects'], stdout=subprocess.PIPE, env=RUN_ENV)
         stdout, stderr = p.communicate()
         projects = stdout.decode("utf-8", "replace").strip().split("\n")
         cache.set('projects', projects)
@@ -101,7 +102,7 @@ def apply_and_upload(user, project, committer, message, patch, note=None):
             yield jinja2.Markup("<b>")
             yield " ".join(cmd)
             if stdin_name:
-                yield f" < {stdin_name}"
+                yield " < " + stdin_name
             elif stdin:
                 yield jinja2.Markup("\n<div style='margin-left:2em;border-left:1px solid black;padding-left:1em'>")
                 yield stdin.decode('utf-8', 'replace')
