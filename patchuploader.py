@@ -4,18 +4,17 @@ import tempfile
 import os
 import re
 import pipes
-import shutil
 import binascii
-
-FILE_DIR = os.path.normpath(os.path.split(__file__)[0])
-os.chdir(FILE_DIR)
 
 import jinja2
 from flask import Flask, render_template, request, Response, session
 from werkzeug.contrib.cache import FileSystemCache
 from flask_mwoauth import MWOAuth
 
-import config
+FILE_DIR = os.path.abspath(os.path.split(__file__)[0])
+os.chdir(FILE_DIR)
+
+import config  # noqa, needs to be loaded from local path
 
 GIT_PATH = 'git'
 PATCH_PATH = 'patch'
@@ -29,12 +28,13 @@ app.register_blueprint(mwoauth.bp)
 
 cache = FileSystemCache('cache')
 
+
 def get_projects():
     projects = cache.get('projects')
     if projects is None:
         p = subprocess.Popen(['ssh', 'gerrit', 'gerrit ls-projects'], stdout=subprocess.PIPE)
         stdout, stderr = p.communicate()
-        projects = stdout.split("\n")
+        projects = stdout.decode("utf-8", "replace").strip().split("\n")
         cache.set('projects', projects)
     return projects
 
@@ -64,11 +64,11 @@ def submit():
     message = request.form['message']
     if not message:
         return 'message not set'
-    fpatch = request.files['fpatch']
-    if fpatch:
-        patch = fpatch.stream.read()
+
+    if 'fpatch' in request.files:
+        patch = request.files['fpatch'].stream.read()
     else:
-        patch = request.form['patch'].encode('utf-8').replace("\r\n", "\n")
+        patch = request.form['patch'].replace("\r\n", "\n").encode('utf-8')
     if not patch:
         return 'patch not set'
 
@@ -81,14 +81,6 @@ Please contact the patch author, %s, for questions/improvements.
     return Response(jinja2.escape(e) for e in apply_and_upload(user, project, committer, message, patch, note))
 
 
-def run_command(cmd):
-    yield " ".join(cmd) + "\n"
-    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    lines = p.communicate()[0].split("\n")
-    lines = "\n".join([line for line in lines if "[K" not in line])
-    yield lines
-
-
 def prepare_message(message):
     message = message.replace("\r\n", "\n")
     message = message.split("\n")
@@ -96,124 +88,133 @@ def prepare_message(message):
     if not message[-1].startswith('Change-Id: '):
         if not re.match(r"[a-zA-Z\-]+: ", message[-1]):
             message.append("")
-        message.append('Change-Id: I%s' % binascii.b2a_hex(os.urandom(20)))
+        message.append('Change-Id: I%s' % binascii.b2a_hex(os.urandom(20)).decode('ascii'))
 
     return "\n".join(message) + "\n"
 
+
 def apply_and_upload(user, project, committer, message, patch, note=None):
-    yield jinja2.Markup("Result from uploading patch: <br><div style='font-family: monospace;white-space: pre;'>")
-    tempd = tempfile.mkdtemp()
-    try:
-        cmd = [GIT_PATH, 'clone', '--depth=1', 'ssh://gerrit/' + project, tempd]
-        yield " ".join(cmd) + "\n"
-        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=tempd, env=RUN_ENV)
-        yield p.communicate()[0]
-        if p.returncode != 0:
-            raise Exception("Clone failed")
+    yield jinja2.Markup("Result from uploading patch: <hr><div style='font-family: monospace;white-space: pre;'>")
 
-        cmd = [GIT_PATH, 'rev-parse', '--abbrev-ref', 'HEAD']
-        yield "\n" + " ".join(cmd) + "\n"
-        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=tempd, env=RUN_ENV)
-        branch = p.communicate()[0]
-        if p.returncode != 0:
-            raise Exception("Could not determine branch")
-        branch = branch.strip()
-        yield jinja2.Markup("Will commit to branch: %s\n\n" % branch)
+    with tempfile.TemporaryDirectory() as tempd:
+        def run_command(cmd, *, stdin=None, stdin_name=None):
+            yield jinja2.Markup("<b>")
+            yield " ".join(cmd)
+            if stdin_name:
+                yield f" < {stdin_name}"
+            elif stdin:
+                yield jinja2.Markup("\n<div style='margin-left:2em;border-left:1px solid black;padding-left:1em'>")
+                yield stdin.decode('utf-8', 'replace')
+                yield jinja2.Markup("</div>")
 
-        cmd = [GIT_PATH, 'config', 'user.name', '[[mw:User:%s]]' % user.encode('utf-8')]
-        yield " ".join(cmd) + "\n"
-        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=tempd, env=RUN_ENV)
-        yield p.communicate()[0]
-        if p.returncode != 0:
-            raise Exception("Git Config failed (should never happen)!")
+            yield jinja2.Markup("</b>\n<br><i>")
+            p = subprocess.Popen(
+                cmd,
+                stdin=subprocess.PIPE if stdin else None,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                cwd=tempd,
+                env=RUN_ENV)
 
-        cmd = [GIT_PATH, 'config', 'user.email', config.committer_email]
-        yield " ".join(cmd) + "\n"
-        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=tempd, env=RUN_ENV)
-        yield p.communicate()[0]
-        if p.returncode != 0:
-            raise Exception("Git Config failed (should never happen)!")
+            stdout = p.communicate(stdin)[0].replace(b"\x1b[K", b"").decode('utf-8', 'replace')
+            yield stdout
+            yield jinja2.Markup("</i><hr>")
 
-        yield "\n"
-        patch_commands = [
-            [GIT_PATH, "apply"],
-            [PATCH_PATH, "--no-backup-if-mismatch", "-p0", "-u"],
-            [PATCH_PATH, "--no-backup-if-mismatch", "-p1", "-u"],
-        ]
-        for pc in patch_commands:
-            yield "\n" + " ".join(pc) + " < patch\n"
-            p = subprocess.Popen(pc, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=tempd, env=RUN_ENV)
-            yield p.communicate(patch)[0].decode('utf-8')  # patch is already bytes, so should not be .encode()d!
-            if p.returncode == 0:
-                break
-        yield "\n"
-        if p.returncode != 0:
-            raise Exception(
-                "Patch failed (is your patch in unified diff format, and does it patch apply cleanly to master?)"
-            )
+            return p, stdout
 
-        yield "\n%s add -A\n" % GIT_PATH
-        p = subprocess.Popen([GIT_PATH, "add", "-A"],
-                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=tempd, env=RUN_ENV)
-        yield p.communicate()[0].decode('utf-8')
-        if p.returncode != 0:
-            raise Exception("Git add failed (were no files changed?)")
-
-        yield "\n%s commit --author='%s' -F - < message\n" % (GIT_PATH, committer)
-        p = subprocess.Popen([GIT_PATH, "commit", "-a", "--author=" + committer.encode('utf-8'), "-F", "-"],
-                             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=tempd, env=RUN_ENV)
-        message = prepare_message(message)
-        yield message + "\n\n"
-        yield p.communicate(message.encode('utf-8'))[0].decode('utf-8')
-        if p.returncode != 0:
-            raise Exception("Commit failed (incorrect format used for author?)")
-
-        yield "\n%s rev-list -1 HEAD\n" % GIT_PATH
-        p = subprocess.Popen([GIT_PATH, "rev-list", "-1", "HEAD"],
-                             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=tempd, env=RUN_ENV)
-        sha1 = p.communicate()[0].decode('utf-8').strip()
-        if p.returncode != 0:
-            raise Exception("Could not determine commit SHA1")
-
-        yield sha1 + "\n\n"
-
-        yield jinja2.Markup("\n%s push origin HEAD:refs/for/%s\n") % (GIT_PATH, branch)
-        p = subprocess.Popen([GIT_PATH, "push", "origin", "HEAD:refs/for/%s" % branch],
-                             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=tempd)
-        pushresult = p.communicate()[0].replace("\x1b[K", "").decode('utf-8')
-        yield pushresult
-        if p.returncode != 0:
-            raise Exception("Push failed")
-
-        yield jinja2.Markup("</div><br>")
-
-        yield "Uploaded patches:"
-        yield jinja2.Markup("<ul>")
-        patches = re.findall('https://gerrit.wikimedia.org/[^ ]*', pushresult)
-
-        for patch in patches:
-            yield jinja2.Markup('<li><a href="%s">%s</a>') % (patch, patch)
-        yield jinja2.Markup("</ul>")
-
-        if note:
-            yield jinja2.Markup("<div>Submitting note: %s</div><br>") % note
-            note = pipes.quote(note.encode('utf-8'))
-            sha1 = pipes.quote(sha1.encode('utf-8'))
-            p = subprocess.Popen(["ssh", "gerrit", "gerrit review %s -m %s" % (sha1, note)],
-                                 stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=tempd, env=RUN_ENV)
-            p.communicate()
+        try:
+            p, _ = yield from run_command(
+                [GIT_PATH, 'clone', "-v", "-v", '--depth=1', 'ssh://gerrit/' + project, tempd])
             if p.returncode != 0:
-                raise Exception("Note could not be submitted correctly")
+                raise Exception("Clone failed")
 
-        if len(patches) == 1:
-            yield "Automatically redirecting in 5 seconds..."
-            yield jinja2.Markup('<meta http-equiv="refresh" content="5; url=%s">') % (patch,)
-    except Exception, e:
-        yield jinja2.Markup("</div>")
-        yield jinja2.Markup("<b>Upload failed</b><br>")
-        yield jinja2.Markup("Reason: <i>%s</i> (check log above for details)") % e
-    finally:
-        shutil.rmtree(tempd)
+            p, stdout = yield from run_command(
+                [GIT_PATH, 'rev-parse', '--abbrev-ref', 'HEAD'])
+            if p.returncode != 0:
+                raise Exception("Could not determine branch")
+
+            branch = stdout.strip()
+
+            p, _ = yield from run_command(
+                [GIT_PATH, 'config', 'user.name', '[[mw:User:%s]]' % user])
+            if p.returncode != 0:
+                raise Exception("Git Config failed (should never happen)!")
+
+            p, _ = yield from run_command(
+                [GIT_PATH, 'config', 'user.email', config.committer_email])
+            if p.returncode != 0:
+                raise Exception("Git Config failed (should never happen)!")
+
+            patch_commands = [
+                [GIT_PATH, "apply"],
+                [PATCH_PATH, "--no-backup-if-mismatch", "-p0", "-u"],
+                [PATCH_PATH, "--no-backup-if-mismatch", "-p1", "-u"],
+            ]
+            for pc in patch_commands:
+                p, _ = yield from run_command(pc, stdin=patch, stdin_name="patch")
+                if p.returncode == 0:
+                    break
+
+            if p.returncode != 0:
+                raise Exception(
+                    "Patch failed (is your patch in unified diff format, and does it patch apply cleanly to master?)"
+                )
+
+            p, _ = yield from run_command(
+                [GIT_PATH, "add", "-A"])
+            if p.returncode != 0:
+                raise Exception("Git add failed (were no files changed?)")
+
+            message = prepare_message(message)
+            p, _ = yield from run_command(
+                [GIT_PATH, "commit", "-a", "--author=" + committer, "-F", "-"], stdin=message.encode('utf-8'))
+            if p.returncode != 0:
+                raise Exception("Commit failed (incorrect format used for author?)")
+
+            p, stdout = yield from run_command(
+                [GIT_PATH, "rev-list", "-1", "HEAD"])
+            if p.returncode != 0:
+                raise Exception("Could not determine commit SHA1")
+            sha1 = stdout.strip()
+
+            p, pushresult = yield from run_command(
+                [GIT_PATH, "push", "origin", "HEAD:refs/for/%s" % branch])
+            if p.returncode != 0:
+                raise Exception("Push failed")
+
+            yield jinja2.Markup("</div><br>")
+
+            yield "Uploaded patches:"
+            yield jinja2.Markup("<ul>")
+            patches = re.findall('https://gerrit.wikimedia.org/[^ ]*', pushresult)
+
+            for patch in patches:
+                yield jinja2.Markup('<li><a href="%s">%s</a>') % (patch, patch)
+            yield jinja2.Markup("</ul>")
+
+            if note:
+                yield jinja2.Markup("<div>Submitting note: %s</div><br>") % note
+                note = pipes.quote(note)
+                sha1 = pipes.quote(sha1)
+                p = subprocess.Popen(
+                    ["ssh", "gerrit", "gerrit review %s -m %s" % (sha1, note)],
+                    stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                    cwd=tempd,
+                    env=RUN_ENV)
+                p.communicate()
+                if p.returncode != 0:
+                    raise Exception("Note could not be submitted correctly")
+
+            if len(patches) == 1:
+                yield "Automatically redirecting in 5 seconds..."
+                yield jinja2.Markup('<meta http-equiv="refresh" content="5; url=%s">') % (patch,)
+        except Exception as e:
+            yield jinja2.Markup("</div>")
+            yield jinja2.Markup("<b>Upload failed</b><br>")
+            yield jinja2.Markup("Reason: <i>%s</i> (check log above for details)") % e
+
+            import traceback
+            traceback.print_exc()
 
 
 if __name__ == "__main__":
