@@ -8,7 +8,7 @@ import binascii
 
 import jinja2
 from flask import Flask, render_template, request, Response, session
-from werkzeug.contrib.cache import FileSystemCache
+from cachelib import FileSystemCache
 from flask_mwoauth import MWOAuth
 
 FILE_DIR = os.path.abspath(os.path.split(__file__)[0])
@@ -68,7 +68,7 @@ def submit():
 
     if 'fpatch' in request.files:
         patch = request.files['fpatch'].stream.read()
-    else:
+    if not patch:
         patch = request.form['patch'].replace("\r\n", "\n").encode('utf-8')
     if not patch:
         return 'patch not set'
