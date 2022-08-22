@@ -6,8 +6,10 @@ system. Choose a project, enter committer name and email, commit message and uni
 press 'submit'.
 
 The uploader will apply the patch and upload it for you to Gerrit. Check the response for an 
+```
 remote: New Changes:
 remote:   https://gerrit.wikimedia.org/r/...
+```
 
 line and follow that URL.
 
@@ -20,7 +22,7 @@ Implementation notes
 We assume the gerrit instance is available using the SSH alias 'gerrit'. See sshconfig-example for an
 example of what to put in ~/.ssh/config.
 
-The app now runs over CGI, via index.py.
+The app now runs over uwsgi, via `~/www/python/src/app.py` .
 
 
 Running locally
@@ -49,9 +51,10 @@ python patchuploader.py
 
 Deploying
 ---------
-Make sure you're in the gerrit-patch-uploader Tool Labs project. Then:
+Make sure you're in the gerrit-patch-uploader Toolforge project. Login to Toolforge, `become gerrit-patch-uploader`, then
 ```
-./deploy
+cd www/python/src/
+git pull
+webservice stop
+webservice --backend kubernetes python3.7 start
 ```
-
-Which will push the repository to github, then ssh to tools-login to deploy changes.
