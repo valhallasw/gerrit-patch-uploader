@@ -70,4 +70,7 @@ From scratch
   - `cd www/python`
   - `python3 -m venv venv`
   - `venv/bin/pip install -r src/requirements.txt`
-- `webservice python3.11 start`
+  - `exit`
+- `cd ../..`
+- `cp www/python/src/service.template .`
+- `webservice start`
