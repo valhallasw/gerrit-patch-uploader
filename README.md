@@ -56,5 +56,18 @@ Make sure you're in the gerrit-patch-uploader Toolforge project. Login to Toolfo
 cd www/python/src/
 git pull
 webservice stop
-webservice --backend kubernetes python3.7 start
+webservice python3.11 start
 ```
+
+
+From scratch
+------------
+
+- `mkdir -r www/python`
+- `cd www/python`
+- `git checkout https://github.com/valhallasw/gerrit-patch-uploader src`
+- `webservice python3.11 shell`
+  - `cd www/python`
+  - `python3 -m venv venv`
+  - `venv/bin/pip install -r src/requirements.txt`
+- `webservice python3.11 start`
