@@ -3,7 +3,7 @@ import subprocess
 import tempfile
 import os
 import re
-import pipes
+import shlex
 import binascii
 
 import jinja2
@@ -195,8 +195,8 @@ def apply_and_upload(user, project, committer, message, patch, note=None):
 
             if note:
                 yield jinja2.Markup("<div>Submitting note: %s</div><br>") % note
-                note = pipes.quote(note)
-                sha1 = pipes.quote(sha1)
+                note = shlex.quote(note)
+                sha1 = shlex.quote(sha1)
                 p = subprocess.Popen(
                     ["ssh", "gerrit", "gerrit review %s -m %s" % (sha1, note)],
                     stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
