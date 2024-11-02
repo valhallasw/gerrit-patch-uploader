@@ -62,7 +62,9 @@
           <h1 style="margin-top:1em;">Gerrit Patch Uploader</h1>
         </div>
         <p>This tool allows you to upload a patchset to <a href="https://www.mediawiki.org/wiki/Gerrit">Wikimedia's Gerrit</a> without
-           using git, git-review, or even creating a Gerrit account.</p>
+           using git, git-review, or even creating a Gerrit account.<br>
+		   To make a change to an existing patch, copy the Change-Id line from the Gerrit page, and add it to the bottom of your commit message. </p>
+		<p>More information can be found on the <a href="https://www.mediawiki.org/wiki/Gerrit_patch_uploader">Gerrit patch uploader page on mediawiki.org</a>.</p>
 
            {% if not username %}
              {% set disabled = 'disabled' %}
