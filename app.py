@@ -18,7 +18,7 @@ import config  # noqa, needs to be loaded from local path
 
 GIT_PATH = 'git'
 PATCH_PATH = 'patch'
-RUN_ENV = {'PATH': FILE_DIR + "/bin", 'LANG': 'en_US.UTF-8', 'LD_LIBRARY_PATH': FILE_DIR + "/lib"}
+RUN_ENV = {'LANG': 'en_US.UTF-8'}
 
 app = Flask(__name__)
 app.secret_key = config.app_secret_key
