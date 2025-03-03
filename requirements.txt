@@ -1,6 +1,6 @@
 flask==1.1.2           # any ver
 flask-mwoauth==0.4.82  # >=0.1.14
-werkzeug==1.0.1        # >=0.9
+werkzeug==2.2.3        # >=0.9
 cachelib==0.1
 jinja2==2.11.2
 MarkupSafe==1.1.1
