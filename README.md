@@ -1,6 +1,9 @@
 gerrit-patch-uploader
 =====================
 
+https://gerrit-patch-uploader.toolforge.org/
+
+
 Web-based patch uploader for WMF's (or any other, if you use a different .ssh/config) gerrit
 system. Choose a project, enter committer name and email, commit message and unified diff, and
 press 'submit'.
