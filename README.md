@@ -66,9 +66,9 @@ webservice python3.11 start
 From scratch
 ------------
 
-- `mkdir -r www/python`
+- `mkdir -p www/python`
 - `cd www/python`
-- `git checkout https://github.com/valhallasw/gerrit-patch-uploader src`
+- `git clone https://github.com/valhallasw/gerrit-patch-uploader src`
 - `webservice python3.11 shell`
   - `cd www/python`
   - `python3 -m venv venv`
