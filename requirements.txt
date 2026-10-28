@@ -4,12 +4,12 @@ werkzeug==1.0.1        # >=0.9
 cachelib==0.1
 jinja2==2.11.2
 MarkupSafe==1.1.1
-PyJWT==1.7.1
+PyJWT==2.15.0
 Werkzeug==1.0.1
 itsdangerous==1.1.0
 future==1.0.0
 oauthlib==3.2.2
-PyJWT==1.7.1
+PyJWT==2.15.0
 requests==2.32.3
 requests-oauthlib==2.0.0
 urllib3==2.2.3
